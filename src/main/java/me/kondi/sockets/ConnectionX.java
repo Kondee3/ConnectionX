@@ -1,5 +1,7 @@
 package me.kondi.sockets;
 
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 import me.kondi.sockets.Client.Client;
 import me.kondi.sockets.Client.ConnectionXClient;
 import me.kondi.sockets.Server.ConnectionXServer;
@@ -18,16 +20,7 @@ public class ConnectionX extends JDialog {
 
     public ConnectionX() {
 
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            // If Nimbus is not available, you can set the GUI to another look and feel.
-        }
+
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(clientButton);
@@ -87,6 +80,7 @@ public class ConnectionX extends JDialog {
     }
 
     public static void main(String[] args) {
+        FlatDarculaLaf.setup();
         ConnectionX dialog = new ConnectionX();
         dialog.pack();
         dialog.setVisible(true);

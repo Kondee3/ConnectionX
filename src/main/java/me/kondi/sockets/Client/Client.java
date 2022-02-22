@@ -22,8 +22,8 @@ public class Client {
 
 
     public void setupClient() throws IOException {
-        String ip = "localhost";
-        int port = 25566;
+        String ip = "192.168.10.18";
+        int port = 25565;
         s = new Socket(ip, port);
         System.out.println("Client connected");
 
@@ -43,6 +43,7 @@ public class Client {
 
                     } catch (IOException i) {
                         System.out.println(i);
+
                     }
                 }
             }
