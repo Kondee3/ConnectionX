@@ -1,12 +1,6 @@
 package me.kondi.sockets.Client;
 
-import me.kondi.sockets.Server.ConnectionXServer;
-import me.kondi.sockets.Server.Server;
-
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.IOException;
 
 public class ConnectionXClient extends JDialog {
 
@@ -16,35 +10,27 @@ public class ConnectionXClient extends JDialog {
     private JButton sendButton;
     private Client client;
 
-    public ConnectionXClient() {
+    public void setupClientForm(String login) {
+
         setContentPane(contentPanel);
         setModal(true);
-        client = new Client(chatField, messageField);
-
-        try {
-            client.setupClient();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         setTitle("ConnectionX Client");
 
+        contentPanel.getRootPane().setDefaultButton(sendButton);
 
-        sendButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                chatField.append("You: " + messageField.getText() + "\n");
-                client.sendMessage();
-                messageField.setText("");
-
-
-            }
-        });
         pack();
+        client = new Client(chatField, messageField, login);
+
+
+
+        sendButton.addActionListener(e -> {
+            chatField.append("You: " + messageField.getText() + "\n");
+            client.sendMessage();
+            messageField.setText("");
+        });
+
         setVisible(true);
-
-
-
     }
-
 
 
 }

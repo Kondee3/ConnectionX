@@ -1,90 +1,97 @@
 package me.kondi.sockets;
 
-import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatLightLaf;
-import me.kondi.sockets.Client.Client;
 import me.kondi.sockets.Client.ConnectionXClient;
-import me.kondi.sockets.Server.ConnectionXServer;
 import me.kondi.sockets.Server.Server;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class ConnectionX extends JDialog {
 
     private JPanel contentPane;
     private JButton clientButton;
-    private JButton hostButton;
+    private JTextField loginField;
+    private JTextField passwordField;
+    private JCheckBox rememberMeCheckBox;
 
 
-    public ConnectionX() {
+
+
+
+    public ConnectionX()   {
+
 
 
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(clientButton);
         setTitle("ConnectionX");
-        clientButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onClient();
-                dispose();
-            }
-        });
+        setSize(280, 360);
+        clientButton.addActionListener(e -> {
+            setVisible(false);
+            onClient();
 
-        hostButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onHost();
-                dispose();
-            }
         });
+        clientButton.setBackground(new Color(64, 61, 57));
+
+
+
+
+
 
         // call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 onCancel();
             }
         });
 
-        // call onCancel() on ESCAPE
-        contentPane.registerKeyboardAction(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onCancel();
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+
+
+
     }
 
     private void onClient() {
-       ConnectionXClient clientForm = new ConnectionXClient();
-
-
-        // add your code here
-
+        ConnectionXClient clientForm = new ConnectionXClient();
+        clientForm.setupClientForm(loginField.getText());
 
 
     }
 
-    private void onHost() {
-        ConnectionXServer serverForm = new ConnectionXServer();
+    private static void onHost() {
 
-
-
-
+        Server server = new Server();
+        server.setupHost();
 
 
     }
 
-    public void onCancel(){
+    public void onCancel() {
         dispose();
     }
 
     public static void main(String[] args) {
-        FlatDarculaLaf.setup();
-        ConnectionX dialog = new ConnectionX();
-        dialog.pack();
-        dialog.setVisible(true);
-        System.exit(0);
+        FlatLightLaf.setup();
+        if (args.length == 0) {
+            ConnectionX dialog = new ConnectionX();
+            dialog.pack();
+            dialog.setVisible(true);
+
+        } else {
+            if (args[0].equalsIgnoreCase("host")) {
+                onHost();
+            }
+        }
+
+
     }
 
 }
+

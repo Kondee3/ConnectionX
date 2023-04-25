@@ -1,62 +1,112 @@
 package me.kondi.sockets.Client;
 
+import me.kondi.sockets.DataStream;
+import org.json.JSONObject;
+
 import javax.swing.*;
+import javax.xml.crypto.Data;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Random;
 
 public class Client {
 
     private Socket s;
-    private DataInputStream inHost;
+    private DataInputStream in;
     private DataOutputStream out;
+
     private JTextArea chatField;
     private JTextField messageField;
 
-    public Client(JTextArea chatField, JTextField messageField) {
+    private String login;
+
+    public Client(JTextArea chatField, JTextField messageField, String login) {
+
         this.chatField = chatField;
+
         this.messageField = messageField;
+
+        this.login = login;
+
+        setupClient();
+
     }
 
 
-    public void setupClient() throws IOException {
-        String ip = "192.168.10.18";
-        int port = 25565;
-        s = new Socket(ip, port);
-        System.out.println("Client connected");
+    public void setupClient() {
+        try {
 
-        out = new DataOutputStream(s.getOutputStream());
-        inHost = new DataInputStream(new BufferedInputStream(s.getInputStream()));
+            String ip = "localhost";
+
+            int port = 25566;
+
+            s = new Socket(ip, port);
+
+            System.out.println("Client connected");
+
+            DataStream dataStream = new DataStream(s);
+
+            in = dataStream.getDataInputStream();
+
+            out = dataStream.getDataOutputStream();
+
+            sendUserDataForServer(login);
+
+            runMessageReceiver();
 
 
-        Thread receiver = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String line = "";
-                while (!line.equals("Over")) {
-                    try {
-                        line = inHost.readUTF();
-                        chatField.append("Host: " + line + "\n");
-                        System.out.println(line);
 
-                    } catch (IOException i) {
-                        System.out.println(i);
 
-                    }
+
+
+        } catch (IOException ex) {
+            System.out.println(ex);
+        }
+
+
+    }
+
+    public void sendUserDataForServer(String login){
+        try {
+
+            JSONObject data = new JSONObject();
+            data.put("type", "login");
+            data.put("login", login);
+            out.writeUTF(data.toString());
+
+        } catch (IOException i) {
+            System.out.println(i);
+        }
+    }
+
+    private void runMessageReceiver() {
+        new Thread(() -> {
+            try {
+                while(true){
+
+                    String line = "Host: " + in.readUTF() + "\n";
+                    chatField.append(line);
+                    System.out.println(line);
                 }
+
+
+            } catch (IOException i) {
+                System.out.println(i);
             }
-        });
-        receiver.start();
-
-
+        }).start();
     }
 
     public void sendMessage() {
 
         try {
-            out.writeUTF(messageField.getText());
+            JSONObject data = new JSONObject();
+            data.put("type", "message");
+            data.put("text", messageField.getText());
+            out.writeUTF(data.toString());
+
         } catch (IOException i) {
             System.out.println(i);
         }

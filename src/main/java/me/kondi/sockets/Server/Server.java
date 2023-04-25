@@ -1,91 +1,117 @@
 package me.kondi.sockets.Server;
 
-import javax.swing.*;
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import me.kondi.sockets.DataStream;
+import org.json.JSONObject;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Server {
 
     private ServerSocket ss;
 
-    private List<Socket> sockets = new ArrayList<>();
-    private DataInputStream in;
-    private DataOutputStream out;
-    private JTextArea chatField;
-    private JTextField messageField;
+    private HashMap<Socket, DataStream> sockets = new HashMap<>();
 
-    public Server(JTextArea chatField, JTextField messageField) {
-        this.chatField = chatField;
-        this.messageField = messageField;
+
+    public Server() {
     }
 
-    public void setupHost() throws IOException {
+    public void setupHost() {
         System.out.println("Server has started");
-        ss = new ServerSocket(25566);
-        
-        System.out.println("Server is waiting for client");
-        Thread connection = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Socket s = ss.accept();
-                   sockets.add(s);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        connection.start();
-
-        System.out.println("Client connected");
-
-
-
-        String line = "";
-        // reads message from client until "Over" is sent
-
-
-        Thread receiver = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (Socket socket : sockets) {
-
-
-                    String line = "";
-
-                    try {
-                        in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-                        line = in.readUTF();
-                        chatField.append("Client: " + line + "\n");
-
-                        System.out.println(line);
-
-                    } catch (IOException i) {
-                        System.out.println(i);
-                    }
-                }
-            }
-        });
-        receiver.start();
-    }
-
-    public void sendMessage() {
-    for (Socket socket : sockets)
         try {
-            out = new DataOutputStream(socket.getOutputStream());
-            out.writeUTF(messageField.getText());
-
-
-        } catch (IOException i) {
-            System.out.println(i);
+            ss = new ServerSocket(25566);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
+        System.out.println("Server is waiting for client");
+
+        while (true) {
+            runConnectionManager();
+            runMessageReceiver();
+            runMessageSender();
+        }
+
+
     }
 
+    private void runMessageSender() {
 
+
+        Runnable scan = () -> {
+            while (true){
+                Scanner scanner = new Scanner(System.in);
+                if (scanner.hasNext())
+                    sendMessage(scanner.nextLine());
+            }
+
+
+        };
+        scan.run();
+    }
+
+    private void runConnectionManager() {
+        new Thread(() -> {
+            try {
+                while (true) {
+                    Socket s = ss.accept();
+                    if (!sockets.keySet().contains(s)) {
+                        sockets.put(s, new DataStream(s));
+                    }
+                    System.out.println("Client connected");
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+        private void runMessageReceiver() {
+        new Thread(() -> {
+            while (true) {
+                for (Map.Entry<Socket, DataStream> socketDataInputStreamEntry : sockets.entrySet()) {
+                    try {
+                        DataStream dataStream = socketDataInputStreamEntry.getValue();
+                        DataInputStream data = dataStream.getDataInputStream();
+
+                        JSONObject message = new JSONObject(data.readUTF());
+
+                        switch (message.getString("type")){
+                            case "login":
+                                dataStream.setUserData("login", message.get("login"));
+                                break;
+                            case "message":
+                                System.out.println(dataStream.getUserData("login") + ": " + message.get("text") + "\n");
+                                break;
+                        }
+
+
+                    } catch (IOException ex) {
+                        System.out.println(ex);
+                    }
+
+                }
+            }
+        }).start();
+
+
+    }
+
+    public void sendMessage(String text) {
+
+        for (Map.Entry<Socket, DataStream> socketDataOutputStreamEntry : sockets.entrySet()) {
+            try {
+                socketDataOutputStreamEntry.getValue().getDataOutputStream().writeUTF(text);
+                System.out.println("Host:" + text);
+            } catch (IOException ex) {
+                System.out.println(ex);
+            }
+
+        }
+
+
+    }
 }
