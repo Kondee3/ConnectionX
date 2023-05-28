@@ -1,35 +1,37 @@
 package me.kondi.sockets.Client;
 
 import me.kondi.sockets.DataStream;
-import org.json.JSONObject;
+import me.kondi.sockets.Message.Message;
+import me.kondi.sockets.Message.MessageSender;
+import me.kondi.sockets.Message.MessageType;
+import me.kondi.sockets.User.User;
 
 import javax.swing.*;
-import javax.xml.crypto.Data;
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.Random;
+import java.util.Objects;
 
 public class Client {
 
     private Socket s;
-    private DataInputStream in;
-    private DataOutputStream out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
 
-    private JTextArea chatField;
-    private JTextField messageField;
+    private final JTextArea chatField;
+    private final JTextField messageField;
 
-    private String login;
+    private final User user;
 
-    public Client(JTextArea chatField, JTextField messageField, String login) {
+
+    public Client(JTextArea chatField, JTextField messageField, String login, String password) {
 
         this.chatField = chatField;
 
         this.messageField = messageField;
 
-        this.login = login;
+        this.user = new User(login, password);
 
         setupClient();
 
@@ -53,13 +55,9 @@ public class Client {
 
             out = dataStream.getDataOutputStream();
 
-            sendUserDataForServer(login);
+            sendUserDataForServer(user);
 
             runMessageReceiver();
-
-
-
-
 
 
         } catch (IOException ex) {
@@ -69,14 +67,10 @@ public class Client {
 
     }
 
-    public void sendUserDataForServer(String login){
+    public void sendUserDataForServer(User user) {
         try {
-
-            JSONObject data = new JSONObject();
-            data.put("type", "login");
-            data.put("login", login);
-            out.writeUTF(data.toString());
-
+            Message loginMessage = new Message(MessageType.LOGIN, MessageSender.CLIENT, user);
+            out.writeObject(loginMessage);
         } catch (IOException i) {
             System.out.println(i);
         }
@@ -84,33 +78,36 @@ public class Client {
 
     private void runMessageReceiver() {
         new Thread(() -> {
-            try {
-                while(true){
+            while (true) {
+                try {
+                    Message message = (Message) in.readObject();
 
-                    String line = "Host: " + in.readUTF() + "\n";
-                    chatField.append(line);
-                    System.out.println(line);
+                    switch (message.getMessageType()){
+                        case MESSAGE -> {
+                            if (message.getMessageSender() == MessageSender.SERVER) {
+                                chatField.append("Server: " + message.getText() + "\n");
+                            } else {
+                                chatField.append(message.getUser().getClientLogin() + ": " + message.getText() + "\n");
+                            }
+                        }
+                    }
+                } catch (IOException i) {
+                    System.out.println(i);
+
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
                 }
-
-
-            } catch (IOException i) {
-                System.out.println(i);
             }
+
         }).start();
     }
 
     public void sendMessage() {
-
         try {
-            JSONObject data = new JSONObject();
-            data.put("type", "message");
-            data.put("text", messageField.getText());
-            out.writeUTF(data.toString());
-
+            Message message = new Message(MessageType.MESSAGE, MessageSender.CLIENT, user, messageField.getText());
+            out.writeObject(message);
         } catch (IOException i) {
             System.out.println(i);
         }
     }
-
-
 }

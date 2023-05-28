@@ -1,19 +1,26 @@
 package me.kondi.sockets.Server;
 
 import me.kondi.sockets.DataStream;
-import org.json.JSONObject;
+import me.kondi.sockets.Message.Message;
+import me.kondi.sockets.Message.MessageSender;
+import me.kondi.sockets.Message.MessageType;
+import me.kondi.sockets.UserDataStream;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 
 public class Server {
 
     private ServerSocket ss;
 
     private HashMap<Socket, DataStream> sockets = new HashMap<>();
-
+    private HashMap<Socket, UserDataStream> userSockets = new HashMap<>();
 
     public Server() {
     }
@@ -28,26 +35,20 @@ public class Server {
 
         System.out.println("Server is waiting for client");
 
-        while (true) {
-            runConnectionManager();
-            runMessageReceiver();
-            runMessageSender();
-        }
-
+        runConnectionManager();
+        runHandshakeReceiver();
+        runMessageReceiver();
+        runMessageSender();
 
     }
 
     private void runMessageSender() {
-
-
         Runnable scan = () -> {
-            while (true){
+            while (true) {
                 Scanner scanner = new Scanner(System.in);
                 if (scanner.hasNext())
                     sendMessage(scanner.nextLine());
             }
-
-
         };
         scan.run();
     }
@@ -60,7 +61,7 @@ public class Server {
                     if (!sockets.keySet().contains(s)) {
                         sockets.put(s, new DataStream(s));
                     }
-                    System.out.println("Client connected");
+
                 }
 
             } catch (IOException e) {
@@ -69,28 +70,65 @@ public class Server {
         }).start();
     }
 
-        private void runMessageReceiver() {
+    private void runHandshakeReceiver() {
         new Thread(() -> {
             while (true) {
                 for (Map.Entry<Socket, DataStream> socketDataInputStreamEntry : sockets.entrySet()) {
                     try {
                         DataStream dataStream = socketDataInputStreamEntry.getValue();
-                        DataInputStream data = dataStream.getDataInputStream();
+                        ObjectInputStream data = dataStream.getDataInputStream();
+                        Message message = (Message) data.readObject();
 
-                        JSONObject message = new JSONObject(data.readUTF());
-
-                        switch (message.getString("type")){
-                            case "login":
-                                dataStream.setUserData("login", message.get("login"));
+                        switch (message.getMessageType()) {
+                            case LOGIN:
+                                userSockets.put(socketDataInputStreamEntry.getKey(), new UserDataStream(dataStream, message.getUser()));
+                                sockets.remove(socketDataInputStreamEntry.getKey());
                                 break;
-                            case "message":
-                                System.out.println(dataStream.getUserData("login") + ": " + message.get("text") + "\n");
+                            case REGISTER:
+                                System.out.println(message.getUser().getClientLogin() + ": " + message.getUser().getPassword() + "\n");
                                 break;
                         }
 
 
                     } catch (IOException ex) {
                         System.out.println(ex);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                }
+            }
+        }).start();
+
+
+    }
+
+    private void runMessageReceiver() {
+        new Thread(() -> {
+            while (true) {
+                for (Map.Entry<Socket, UserDataStream> socketDataInputStreamEntry : userSockets.entrySet()) {
+                    try {
+                        UserDataStream dataStream = socketDataInputStreamEntry.getValue();
+                        ObjectInputStream data = dataStream.getDataInputStream();
+
+                        Message message = (Message) data.readObject();
+
+                        switch (message.getMessageType()) {
+                            case MESSAGE:
+                                for (Map.Entry<Socket, UserDataStream> userDataStreamEntry : userSockets.entrySet()) {
+                                    if(userDataStreamEntry != socketDataInputStreamEntry){
+                                        sendMessage(message, userDataStreamEntry.getValue());
+                                    }
+                                }
+                                System.out.println(message.getUser().getClientLogin() + ": " + message.getText());
+                                break;
+                        }
+
+
+                    } catch (IOException ex) {
+                        System.out.println(ex);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
                     }
 
                 }
@@ -102,10 +140,12 @@ public class Server {
 
     public void sendMessage(String text) {
 
-        for (Map.Entry<Socket, DataStream> socketDataOutputStreamEntry : sockets.entrySet()) {
+        for (Map.Entry<Socket, UserDataStream> socketDataOutputStreamEntry : userSockets.entrySet()) {
             try {
-                socketDataOutputStreamEntry.getValue().getDataOutputStream().writeUTF(text);
-                System.out.println("Host:" + text);
+                Message message = new Message(MessageType.MESSAGE, MessageSender.SERVER, text);
+                ObjectOutputStream out = socketDataOutputStreamEntry.getValue().getDataOutputStream();
+                out.writeObject(message);
+
             } catch (IOException ex) {
                 System.out.println(ex);
             }
@@ -113,5 +153,13 @@ public class Server {
         }
 
 
+    }
+    public void sendMessage(Message message, UserDataStream userDataStream) {
+            try {
+                ObjectOutputStream out = userDataStream.getDataOutputStream();
+                out.writeObject(message);
+            } catch (IOException ex) {
+                System.out.println(ex);
+            }
     }
 }

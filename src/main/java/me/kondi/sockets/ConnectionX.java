@@ -60,7 +60,7 @@ public class ConnectionX extends JDialog {
 
     private void onClient() {
         ConnectionXClient clientForm = new ConnectionXClient();
-        clientForm.setupClientForm(loginField.getText());
+        clientForm.setupClientForm(loginField.getText(), passwordField.getText());
 
 
     }

@@ -10,7 +10,7 @@ public class ConnectionXClient extends JDialog {
     private JButton sendButton;
     private Client client;
 
-    public void setupClientForm(String login) {
+    public void setupClientForm(String login, String password) {
 
         setContentPane(contentPanel);
         setModal(true);
@@ -19,7 +19,7 @@ public class ConnectionXClient extends JDialog {
         contentPanel.getRootPane().setDefaultButton(sendButton);
 
         pack();
-        client = new Client(chatField, messageField, login);
+        client = new Client(chatField, messageField, login, password);
 
 
 
