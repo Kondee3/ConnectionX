@@ -35,10 +35,13 @@ public class Server {
 
         System.out.println("Server is waiting for client");
 
-        runConnectionManager();
-        runHandshakeReceiver();
-        runMessageReceiver();
-        runMessageSender();
+
+            runConnectionManager();
+            runHandshakeReceiver();
+            runMessageReceiver();
+            runMessageSender();
+
+
 
     }
 

@@ -57,7 +57,10 @@ public class Client {
 
             sendUserDataForServer(user);
 
-            runMessageReceiver();
+
+                runMessageReceiver();
+
+
 
 
         } catch (IOException ex) {
