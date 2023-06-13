@@ -5,11 +5,7 @@ import me.kondi.sockets.Client.ConnectionXClient;
 import me.kondi.sockets.Server.Server;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 public class ConnectionX extends JDialog {
 
@@ -18,26 +14,22 @@ public class ConnectionX extends JDialog {
     private JTextField loginField;
     private JTextField passwordField;
     private JCheckBox rememberMeCheckBox;
-
-
-
+    private JLabel connectionButton;
 
 
     public ConnectionX()   {
-
-
 
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(clientButton);
         setTitle("ConnectionX");
-        setSize(280, 360);
+        setResizable(false);
+
         clientButton.addActionListener(e -> {
             setVisible(false);
             onClient();
 
         });
-        clientButton.setBackground(new Color(64, 61, 57));
 
 
 
@@ -61,7 +53,6 @@ public class ConnectionX extends JDialog {
     private void onClient() {
         ConnectionXClient clientForm = new ConnectionXClient();
         clientForm.setupClientForm(loginField.getText(), passwordField.getText());
-
 
     }
 
